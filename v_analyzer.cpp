@@ -46,7 +46,7 @@ bool GetColor(IplImage* image, CvRect rect){
 	else{
 		printf("R = %d G = %d B = %d\n", R, G, B);
 		printf("r = %d g = %d b = %d\n", (int)(r/value), (int)(g/value), (int)(b/value));
-		if((abs(R-(int)(r/value)) < 15) && (abs(G-(int)(g/value)) < 15) && (abs(B-(int)(b/value)) < 15)){
+		if((abs(R-(int)(r/value)) < 20) && (abs(G-(int)(g/value)) < 20) && (abs(B-(int)(b/value)) < 20)){
 
 			printf("+\n");
 			return true;
@@ -124,6 +124,44 @@ void* GetContour(void* param){
 					
 				}
 			}
+
+			cvThreshold( bin_frame, bin_frame, thresHoldValue + 10, 255, CV_THRESH_BINARY );			
+
+			cvFindContours( bin_frame, storage, &contours, sizeof(CvContour), CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, 					cvPoint(0,0)); 
+			
+
+			for( CvSeq* c = contours; c!=NULL; c=c->h_next){
+
+				CvRect Rect = cvBoundingRect( c ); // Поиск ограничивающего прямоугольника
+				b = cvMinAreaRect2( c );
+		  		if ( (Rect.width > 70) && (Rect.height > 70) && (Rect.width < 150) && (Rect.height < 150)  && 
+					GetColor(con_image, Rect)){
+					
+				DrawRotatedRect( con_image, b, CV_RGB(255,0,0), 2 );
+				CentrOfMass(con_image,b);
+					
+				}
+			}
+
+			cvThreshold( bin_frame, bin_frame, thresHoldValue - 10, 255, CV_THRESH_BINARY );			
+
+			cvFindContours( bin_frame, storage, &contours, sizeof(CvContour), CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, 					cvPoint(0,0)); 
+
+			
+			for( CvSeq* c = contours; c!=NULL; c=c->h_next){
+
+				CvRect Rect = cvBoundingRect( c ); // Поиск ограничивающего прямоугольника
+				b = cvMinAreaRect2( c );
+		  		if ( (Rect.width > 70) && (Rect.height > 70) && (Rect.width < 150) && (Rect.height < 150)  && 
+					GetColor(con_image, Rect)){
+					
+				DrawRotatedRect( con_image, b, CV_RGB(255,0,0), 2 );
+				CentrOfMass(con_image,b);
+					
+				}
+			}
+
+			
 			
 	
 			cvReleaseMemStorage( &storage);
@@ -187,6 +225,9 @@ void ImageFromCapture(){
 	
 	CvCapture* capture = 0;
 	capture = cvCreateCameraCapture(1);
+	cvNamedWindow("Image", CV_WINDOW_AUTOSIZE );//Создание окна
+	frame = cvQueryFrame( capture );
+	tmp_frame = cvCreateImage(cvSize(frame->width, frame->height),IPL_DEPTH_8U, frame->nChannels);	
 	//Создаётся окно вывода изображения на экран
 	if( capture ){
 		for(;;){
@@ -197,9 +238,8 @@ void ImageFromCapture(){
 			//Получается указатель на изображение
 			frame = cvQueryFrame( capture );
 	
-			cvNamedWindow("Image", CV_WINDOW_AUTOSIZE );//Создание окна
+			
 			cvShowImage("Image", frame );//Вывод изображения в окно			
-			tmp_frame = cvCreateImage(cvSize(frame->width, frame->height),IPL_DEPTH_8U, frame->nChannels);	
 
 			pthread_mutex_lock(&mut);	
 			cvCopy( frame, tmp_frame, 0 );
@@ -212,6 +252,7 @@ void ImageFromCapture(){
 		}
 		cvWaitKey(0);
 		cvReleaseCapture( &capture );
+		cvReleaseImage(&frame);
 		cvDestroyWindow( "Image");
 	}
 }
